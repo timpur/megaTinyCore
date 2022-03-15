@@ -1477,6 +1477,12 @@ void __attribute__((weak)) init_TCD0() {
 void __attribute__((weak)) init_TCA0() {
   /*  TYPE A TIMER   */
 
+#ifdef PWM_TIMER_HIGH_RES
+  TCA0.SINGLE.CTRLB = TCA_SINGLE_WGMODE_SINGLESLOPE_gc;
+
+  /* Period setting, 16-bit register */
+  TCA0.SINGLE.PERBUF = PWM_TIMER_PERIOD;
+#else
   /* PORTMUX setting for TCA - don't need to set because using default
      UNLESS it's an 8-pin part, in which case we do.*/
   #ifdef __AVR_ATtinyxy2__
@@ -1502,16 +1508,22 @@ void __attribute__((weak)) init_TCA0() {
     TCA0.SPLIT.LCMP2 = 0;
     TCA0.SPLIT.HCMP2 = 0;
   */
+#endif
 
   /* Use prescale appropriate for system clock speed */
-
+#ifdef PWM_TIMER_HIGH_RES
+  #define INIT_TCA0_CLOCK(clk) (clk) |  (TCA_SINGLE_ENABLE_bm)
+  TCA0.SPLIT.CTRLA   = INIT_TCA0_CLOCK(TCA_SPLIT_CLKSEL_DIV1_gc);
+#else
+  #define INIT_TCA0_CLOCK(clk) (clk) | (TCA_SPLIT_ENABLE_bm)
   #if (F_CPU > 25000000) //   use 256 divider when clocked over 25 MHz
-    TCA0.SPLIT.CTRLA   = (TCA_SPLIT_CLKSEL_DIV256_gc) | (TCA_SPLIT_ENABLE_bm);
+    TCA0.SPLIT.CTRLA   = INIT_TCA0_CLOCK(TCA_SPLIT_CLKSEL_DIV256_gc);
   #elif (F_CPU > 5000000) //  use 64 divider for everything in the middle
-    TCA0.SPLIT.CTRLA   =  (TCA_SPLIT_CLKSEL_DIV64_gc) | (TCA_SPLIT_ENABLE_bm);
+    TCA0.SPLIT.CTRLA   = INIT_TCA0_CLOCK(TCA_SPLIT_CLKSEL_DIV64_gc);
   #elif (F_CPU > 1000000) // and use 16...
-    TCA0.SPLIT.CTRLA   =  (TCA_SPLIT_CLKSEL_DIV16_gc) | (TCA_SPLIT_ENABLE_bm);
+    TCA0.SPLIT.CTRLA   = INIT_TCA0_CLOCK(TCA_SPLIT_CLKSEL_DIV16_gc);
   #else                   // or even 8 otherwise for really slow system clocks.
-    TCA0.SPLIT.CTRLA   =   (TCA_SPLIT_CLKSEL_DIV8_gc) | (TCA_SPLIT_ENABLE_bm);
+    TCA0.SPLIT.CTRLA   = INIT_TCA0_CLOCK(TCA_SPLIT_CLKSEL_DIV8_gc);
   #endif
+#endif
 }

@@ -109,8 +109,13 @@ inline __attribute__((always_inline)) void check_valid_dac_ref(uint8_t mode) {
 
 inline __attribute__((always_inline)) void check_valid_duty_cycle(int16_t val) {
   if (__builtin_constant_p(val)) {
+#ifdef PWM_TIMER_HIGH_RES
+    if (val < 0 || val > 65535)
+      badArg("analogWrite duty cycle called with a constant not between 0 and 65535");
+#else
     if (val < 0 || val > 255)
       badArg("analogWrite duty cycle called with a constant not between 0 and 255");
+#endif
   }
 }
 
@@ -745,7 +750,7 @@ void DACReference(__attribute__ ((unused))uint8_t mode) {
 // hardware support.  These are defined in the variant
 // pins_arduino.h file.  For the rest of the pins, we default
 // to digital output.
-void analogWrite(uint8_t pin, int val) {
+void analogWrite(uint8_t pin, uint16_t val) {
   check_valid_digital_pin(pin);
   check_valid_duty_cycle(val);
   uint8_t bit_mask = digitalPinToBitMask(pin);
@@ -768,10 +773,26 @@ void analogWrite(uint8_t pin, int val) {
   uint8_t digital_pin_timer =  digitalPinToTimer(pin) & PeripheralControl;
   /* end megaTinyCore-specific section */
 
+#ifdef PWM_TIMER_HIGH_RES
+  uint16_t *timer_cmp_out;
+#else
   uint8_t *timer_cmp_out;
+#endif
   /* Find out Port and Pin to correctly handle port mux, and timer. */
   switch (digital_pin_timer) {
     case TIMERA0:
+#ifdef PWM_TIMER_HIGH_RES
+        if (bit_mask == 0x08) {
+          bit_mask = 1;  // on the xy2, WO0 is on PA3
+        }
+        uint8_t offset = 0;
+        if(bit_mask > 1){
+          offset = bit_mask;
+        }
+        timer_cmp_out = ((uint16_t *)(&TCA0.SINGLE.CMP0BUF)) + (offset);
+        (*timer_cmp_out) = (val);
+        TCA0.SINGLE.CTRLB |= (bit_mask << 4);
+#else
       if (val <= 0) { /* if zero or negative drive digital low */
         digitalWrite(pin, LOW);
       } else if (val >= 255) { /* if max or greater drive digital high */
@@ -794,6 +815,7 @@ void analogWrite(uint8_t pin, int val) {
         (*timer_cmp_out) = (val);
         TCA0.SPLIT.CTRLB |= bit_mask;
       }
+#endif
       break;
       // End of TCA case
 

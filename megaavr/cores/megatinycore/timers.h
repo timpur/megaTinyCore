@@ -56,6 +56,9 @@
   #ifndef TCA0
     #error "TCA0, selected for millis, does not exist on this part"
   #endif
+  #ifdef PWM_TIMER_HIGH_RES
+    #error "PWM_TIMER_HIGH_RES can not be used with MILLIS_USE_TIMERA0"
+  #endif
   #define MILLIS_TIMER TIMERA0
 #elif defined(MILLIS_USE_TIMERA1)
   #ifndef TCA1
@@ -126,13 +129,20 @@
 
 /* TYPE-A TIMERS */
 
-#define PWM_TIMER_PERIOD  (0xFE)  // For frequency
-#define PWM_TIMER_COMPARE (0x00) // For duty cycle - this is never used.
-/* The original implementation set the compare registers (all 6 of them, with an STS instruction),
- * and also set a number of other TCA registers to their POR values. That was dumb, and is no longer done.
- * TCA0 is present on all parts and always used for PWM.
- * TCA1 is used for PWM on Dx-series parts that have it.
- */
+// #define PWM_TIMER_HIGH_RES 12
+
+#ifdef PWM_TIMER_HIGH_RES
+  #define PWM_TIMER_PERIOD  ((1 << PWM_TIMER_HIGH_RES) - 2)  // For frequency
+  #define PWM_TIMER_COMPARE (0x0000)  // For duty cycle - this is never used.
+#else
+  #define PWM_TIMER_PERIOD  (0xFE)  // For frequency
+  #define PWM_TIMER_COMPARE (0x00)  // For duty cycle - this is never used.
+  /* The original implementation set the compare registers (all 6 of them, with an STS instruction),
+  * and also set a number of other TCA registers to their POR values. That was dumb, and is no longer done.
+  * TCA0 is present on all parts and always used for PWM.
+  * TCA1 is used for PWM on Dx-series parts that have it.
+  */
+#endif
 
 /* TYPE-B TIMERS */
 #if defined(TCB2) && !defined(MEGATINYCORE)

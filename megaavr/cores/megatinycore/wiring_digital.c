@@ -187,6 +187,12 @@ void turnOffPWM(uint8_t pin) {
     /* TCA0 */
     case TIMERA0:
     {
+#ifdef PWM_TIMER_HIGH_RES
+      if (bit_mask == 0x08) {
+        bit_mask = 1;  // on the xy2, WO0 is on PA3
+      }
+      TCA0.SINGLE.CTRLB &= ~(bit_mask << 4);
+#else
       // uint8_t *timer_cmp_out;
       /* Bit position will give output channel */
       #ifdef __AVR_ATtinyxy2__
@@ -200,6 +206,7 @@ void turnOffPWM(uint8_t pin) {
       // since we're turning it off, we don't need to change the CMP register
       TCA0.SPLIT.CTRLB &= ~bit_mask;
       break;
+#endif
     }
 
     /* We don't need the type b timers as this core does not use them for PWM      */
