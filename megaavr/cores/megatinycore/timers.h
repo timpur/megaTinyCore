@@ -132,6 +132,9 @@
 // #define PWM_TIMER_HIGH_RES 12
 
 #ifdef PWM_TIMER_HIGH_RES
+  #ifndef PWM_TIMER_CLK
+  #define PWM_TIMER_CLK (TCA_SPLIT_CLKSEL_DIV1_gc)
+  #endif
   #define PWM_TIMER_PERIOD  ((1 << PWM_TIMER_HIGH_RES) - 2)  // For frequency
   #define PWM_TIMER_COMPARE (0x0000)  // For duty cycle - this is never used.
 #else
